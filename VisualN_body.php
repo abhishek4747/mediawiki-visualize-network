@@ -231,7 +231,13 @@ var data = {
 };
 $( window ).load(function(){generateGraph(data);});
 </script>
-<div id="visualn"></div>
+<div id="visualn">&nbsp;</div>
+<style>
+#visualn{
+	border: 4px solid black;
+	background: grey;
+}
+</style>
 ';
 		return $ret;
 	}

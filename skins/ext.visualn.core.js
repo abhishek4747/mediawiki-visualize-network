@@ -1,5 +1,5 @@
-var width = 960,
-    height = 500;
+var width = 660,
+    height = 400;
 
 var color = d3.scale.category20();
 
@@ -13,7 +13,8 @@ var svg = d3.select("#visualn").append("svg")
     .attr("height", height);
 
 
-function generateGraph(graph) {
+function generateGraph(graph,max_depth) {
+  max_depth = typeof max_depth !== 'undefined' ? max_depth : 100000;
   force
       .nodes(graph.nodes)
       .links(graph.links)

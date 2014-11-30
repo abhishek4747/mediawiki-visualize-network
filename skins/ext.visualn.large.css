@@ -7,3 +7,9 @@
   stroke: #999;
   stroke-opacity: .6;
 }
+
+#visualn {
+	width: 700px;
+	border:1px solid #aaa;
+	background: #f9f9f9;
+}
