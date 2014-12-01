@@ -36,6 +36,7 @@ class VisualNode
 	public $edge; // VisualEdge: edge connecting this node from parent
 	public $neighbors; // List of VisualNodes
 	public $parent_title;
+	public $depth;
 
 	function getParent()
 	{
@@ -53,7 +54,7 @@ class VisualNode
 		return $this->neighbors;
 	}
 	
-	function __construct($title, $edge = NULL)
+	function __construct($title, $depth = 0 , $edge = NULL)
 	{
 		$this->title = $title;
 		if ($edge == NULL){
@@ -61,6 +62,7 @@ class VisualNode
 		}else{
 			$this->edge = $edge;
 		}
+		$this->depth = $depth;
 	}
 }
 
@@ -152,6 +154,15 @@ class VisualN{
 
 	public static function tag( $input, $args, $parser ) {
 		global $wgRequest;		
+		$ret = '';
+		if (array_key_exists("url", $args)) {
+			$ret = '
+<script>
+$( window ).load(function(){d3.json("'.$args["url"].'",function(error,graph){generateGraph(graph);});});			
+</script>
+';
+		}else{
+
 		$adjList = array(); // Over all graph
 		$parent_children = array(); // Current level of graph: mapping from parent to children
 		
@@ -170,7 +181,7 @@ class VisualN{
 			MWDebug::log('Blocks: '.serialize($blocks));
 			foreach ($blocks as $parent_key => $text) {
 				if (!array_key_exists($parent_key, $adjList)){
-					$adjList[$parent_key] = new VisualNode($parent_key);
+					$adjList[$parent_key] = new VisualNode($parent_key, $depth);
 				}
 				$children = explode("\n", $text);
 				for($x = 0; $x < count($children); $x++) {
@@ -182,7 +193,7 @@ class VisualN{
 						
 						$node_name = $node_params["node"];
 						if (!array_key_exists($node_name, $adjList)){
-							$adjList[$node_name] = new VisualNode($node_name);
+							$adjList[$node_name] = new VisualNode($node_name, $depth+1);
 							$parent_children[] = $node_name;
 						}
 						$adjList[$parent_key]->addNeighbour($node_name); 
@@ -231,15 +242,9 @@ var data = {
 };
 $( window ).load(function(){generateGraph(data);});
 </script>
-<div id="visualn">&nbsp;</div>
-<style>
-#visualn{
-	border: 4px solid black;
-	background: grey;
-}
-</style>
 ';
-		return $ret;
+		}
+		return $ret.'<div id="visualn">&nbsp;<div id="VN_slider"></div></div>';
 	}
 
 	public static function graphExplode($adjacencyList){
@@ -248,10 +253,14 @@ $( window ).load(function(){generateGraph(data);});
 		$graph["edges"] = array();
 		$keys = array_keys($adjacencyList); // One optimization store the back mapping also. no need to search
 		foreach ($keys as $index => $key) {
-			$graph["nodes"][] = "{\"name\":\"{$key}\",\"group\":1}";
+			$d = $adjacencyList[$key]->depth;
+			$d1 = $d+1;
+			$graph["nodes"][] = "{\"name\":\"{$key}\",\"group\":1,\"depth\":{$d}}";
 			foreach ($adjacencyList[$key]->getNeighbors() as $neighbour) {
 				$index2 = array_search($neighbour, $keys);
-				$graph["edges"][] = "{\"source\":{$index}, \"target\":{$index2}, \"value\":1}";
+				$type_of_edge = "";
+				$priority_of_edge = 1;
+				$graph["edges"][] = "{\"source\":{$index}, \"target\":{$index2}, \"value\":1 ,\"depth\":{$d1},\"type\":\"{$type_of_edge}\",\"priority\":{$priority_of_edge} }";
 			}
 		}
 		return $graph;
@@ -271,6 +280,8 @@ $( window ).load(function(){generateGraph(data);});
 		}
 		$out->addScriptFile( $vnScriptPath . '/skins/ext.visualn.d3.v3.min.js' );
 		$out->addScriptFile( $vnScriptPath . '/skins/ext.visualn.core.js' );
+		$out->addScriptFile( $vnScriptPath . '/d3.slider/d3.slider.js' );
+		$out->addExtensionStyle( $vnScriptPath . '/d3.slider/d3.slider.css');
 		// return true;
 	}
 }

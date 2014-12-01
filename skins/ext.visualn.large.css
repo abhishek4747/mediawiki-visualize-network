@@ -13,3 +13,8 @@
 	border:1px solid #aaa;
 	background: #f9f9f9;
 }
+
+.node text {
+  pointer-events: none;
+  font: 10px sans-serif;
+}
