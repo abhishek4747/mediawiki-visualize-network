@@ -15,8 +15,8 @@ var force = d3.layout.force()
 
 
 function generateGraph(graph,max_depth) {
-  $('#visualn svg').remove();
-  var svg = d3.select("#visualn").append("svg")
+  $('#visualnsvg svg').remove();
+  var svg = d3.select("#visualnsvg").append("svg")
   .attr("width", width)
   .attr("height", height);  
 
@@ -33,7 +33,8 @@ function generateGraph(graph,max_depth) {
       .data(graph_links)
     .enter().append("line")
       .attr("class", "link")
-      .style("stroke-width", function(d) { return Math.sqrt(d.value); });
+      .style("stroke-width", function(d) { return Math.sqrt(d.value); })
+      .on("mouseout", function(d) {console.log("Edge:",d);});
 
   link.append("title")
       .text(function(d) { return d.name; });
@@ -44,6 +45,7 @@ function generateGraph(graph,max_depth) {
       .attr("class", "node")
       .attr("r", function(d) { return 5*(d.depth==0?2:1); })
       .style("fill", function(d) { return color(d.depth); })
+      .on("mouseout", function(d) {console.log("Node:",d);})
       .call(force.drag);  
 
   node.append("svg:text")
@@ -65,8 +67,17 @@ function generateGraph(graph,max_depth) {
   });
 }
 $(window).load(function(){
-  d3.select('#VN_slider').call(
-    d3.slider().axis(true).min(1).max(10).step(1).value(8).on("slide", function(evt, value) {
-      generateGraph(data, value);
-    }));
+  if (data) {
+    var m = 0;
+    for (var i = data.nodes.length - 1; i >= 0; i--) {
+      if (data.nodes[i].depth>m)
+        m = data.nodes[i].depth;
+    };
+    generateGraph(data,parseInt(m/2)+1);
+    console.log("Max depth:"+(m+1));
+    d3.select('#VN_slider').call(
+      d3.slider().axis(true).min(0).max(m+1).step(1).value(parseInt(m/2)+1).on("slide", function(evt, value) {
+        generateGraph(data, value);
+      }));
+  };
 });

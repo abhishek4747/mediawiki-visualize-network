@@ -20,9 +20,21 @@ class VisualEdge
 	public $start_time;
 	public $end_time;
 	
-	function __construct($title=NULL)
+	function __construct($title=NULL,$priority=NULL,$time=NULL,$type_of_edge=NULL,$arguments=NULL)
 	{
 		$this->title = $title;
+		$this->priority = $priority;
+		if ($time!=NULL) {
+			$t = explode("-", $time);
+			$this->start_time=$t[0];
+			if (count($t)>1) {
+				$this->end_time=$t[1];
+			}else{
+				$this->end_time="present";
+			}
+		}
+		$this->type_of_edge = $type_of_edge;
+		$this->arguments = $arguments;
 	}
 }
 
@@ -43,10 +55,10 @@ class VisualNode
 
 	}
 
-	public function addNeighbour($name)
+	public function addNeighbour($name, $edge = NULL)
 	{
 		if (!array_key_exists($name, $this->neighbors)) {
-			$this->neighbors[] = $name;
+			$this->neighbors[$name] = $edge;
 		}
 	}
 
@@ -54,7 +66,7 @@ class VisualNode
 		return $this->neighbors;
 	}
 	
-	function __construct($title, $depth = 0 , $edge = NULL)
+	function __construct($title, $depth = 0)
 	{
 		$this->title = $title;
 		if ($edge == NULL){
@@ -115,6 +127,12 @@ class VisualN{
 		$str = trim($str);
 		$strs = explode(";", $str);
 		$count_strs = count($strs);
+		$ret["node"] = "Unnamed node";
+		$ret["edge"] = "Unnamed edge";
+		$ret["priority"] = 0;
+		$ret["time"] = "no time";
+		$ret["type_of_edge"] = "default";
+		$ret["edge_attributes"] = "no edge attributes";
 		if ($count_strs>0){
 			$node = explode("=", $strs[0]);
 			if (count($node)>1){
@@ -158,13 +176,15 @@ class VisualN{
 		if (array_key_exists("url", $args)) {
 			$ret = '
 <script>
-$( window ).load(function(){d3.json("'.$args["url"].'",function(error,graph){generateGraph(graph);});});			
+graph = "";
+$( window ).load(function(){d3.json("'.$args["url"].'",function(error,graph){data = graph;});});			
 </script>
 ';
 		}else{
 
 		$adjList = array(); // Over all graph
 		$parent_children = array(); // Current level of graph: mapping from parent to children
+		$edgeList = array();
 		
 		
 		$max_depth = 5;
@@ -196,7 +216,8 @@ $( window ).load(function(){d3.json("'.$args["url"].'",function(error,graph){gen
 							$adjList[$node_name] = new VisualNode($node_name, $depth+1);
 							$parent_children[] = $node_name;
 						}
-						$adjList[$parent_key]->addNeighbour($node_name); 
+						$edge = new VisualEdge($node_params["edge"],$node_params["priority"],$node_params["time"],$node_params["type_of_edge"],$node_params["edge_attributes"]);
+						$adjList[$parent_key]->addNeighbour($node_name,$edge); 
 					}
 				}
 			}
@@ -240,11 +261,10 @@ var data = {
 	"nodes":['.$nodes_array.'],
 	"links":['.$edges_array.']
 };
-$( window ).load(function(){generateGraph(data);});
 </script>
 ';
 		}
-		return $ret.'<div id="visualn">&nbsp;<div id="VN_slider"></div></div>';
+		return $ret.'<div id="visualn">&nbsp;<div id="VN_slider"></div><div id="visualnsvg"></div></div>';
 	}
 
 	public static function graphExplode($adjacencyList){
@@ -256,11 +276,12 @@ $( window ).load(function(){generateGraph(data);});
 			$d = $adjacencyList[$key]->depth;
 			$d1 = $d+1;
 			$graph["nodes"][] = "{\"name\":\"{$key}\",\"group\":1,\"depth\":{$d}}";
-			foreach ($adjacencyList[$key]->getNeighbors() as $neighbour) {
+			foreach ($adjacencyList[$key]->getNeighbors() as $neighbour=>$edge) {
 				$index2 = array_search($neighbour, $keys);
-				$type_of_edge = "";
-				$priority_of_edge = 1;
-				$graph["edges"][] = "{\"source\":{$index}, \"target\":{$index2}, \"value\":1 ,\"depth\":{$d1},\"type\":\"{$type_of_edge}\",\"priority\":{$priority_of_edge} }";
+				if ($edge->priority==NULL) {
+					$edge->priority = 0;
+				}
+				$graph["edges"][] = "{\"source\":{$index}, \"target\":{$index2}, \"value\":1 ,\"depth\":{$d1},\"type\":\"{$edge->type_of_edge}\",\"priority\":{$edge->priority},\"start_time\":\"{$edge->start_time}\", \"end_time\":\"{$edge->end_time}\",\"arguments\":\"{$edge->arguments}\" }";
 			}
 		}
 		return $graph;
